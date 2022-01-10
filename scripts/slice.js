@@ -35,11 +35,20 @@
 
     function keep_lines(programText, linesToKeep) {
         let acorn = require("acorn");
+        let estraverse = require("estraverse");
         let ast = acorn.parse(programText, {locations:true})
         //console.log(ast);
 
+        let newAst = estraverse.replace(ast, {
+            enter: function (node) {
+                if (node.loc && !linesToKeep.includes(node.loc.start.line)) {
+                    this.remove();
+                }
+            }
+        });
+
         let escodegen = require("escodegen");
-        newProgramText = escodegen.generate(ast);
+        newProgramText = escodegen.generate(newAst);
 
         return newProgramText
     }
@@ -50,10 +59,12 @@
         let fs = require('fs');
         let programText = fs.readFileSync(inFile, 'utf8');
         
-        analysis_result = run_analysis(inFile);
-        console.log(analysis_result);
+        analysisResult = run_analysis(inFile);
+
+        linesToKeep = analysisResult[lineNb];
+        console.log(linesToKeep);
         
-        newProgramText = keep_lines(programText, [1,2,3,4])
+        newProgramText = keep_lines(programText, linesToKeep)
 
         fs.writeFileSync(outFile, newProgramText);     
     }

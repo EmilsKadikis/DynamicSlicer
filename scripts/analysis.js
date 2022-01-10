@@ -116,7 +116,7 @@
             
             // convert sets in slices to arrays
             for (let i in slices)
-                slices[i] = Array.from(slices[i]);
+                slices[i] = Array.from(slices[i]).map(Number);
 
             console.log(JSON.stringify(slices));
         }
