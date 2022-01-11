@@ -90,6 +90,18 @@
             addUsage(iid)
         }
 
+        this.putFieldPre = function(iid, base, offset, val, isComputed, isOpAssign) {
+            addToExecutionHistory(iid);
+            var shadowObj = jalangi.smemory.getShadowObject(base, offset, false);
+            addDeclaration(iid, jalangi.smemory.getIDFromShadowObjectOrFrame(shadowObj.owner)+"." + offset);
+        }
+
+        this.getFieldPre = function(iid, base, offset, isComputed, isOpAssign, isMethodCall) {
+            addToExecutionHistory(iid);
+            var shadowObj = jalangi.smemory.getShadowObject(base, offset, false);
+            addUsage(iid, jalangi.smemory.getIDFromShadowObjectOrFrame(shadowObj.owner)+"." + offset);
+        }
+
         function union(setA, setB) {        
             let _union = new Set(setA)
             if(setB) {

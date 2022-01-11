@@ -62,7 +62,6 @@
         analysisResult = run_analysis(inFile);
 
         linesToKeep = analysisResult[lineNb];
-        console.log(linesToKeep);
         
         newProgramText = keep_lines(programText, linesToKeep)
 
