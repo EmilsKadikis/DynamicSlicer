@@ -10,11 +10,26 @@
         declares = {};
         usages = {};
 
-        function addUsage(loc, name) {
-            if (!usages[loc]) {
+        call_stack = [];
+
+        function addUsage(iid, name) {
+            let loc = getLineNumber(iid);
+
+            if (!usages[loc])
                 usages[loc] = new Set();
-            }
-            usages[loc].add(name);
+            if (name)
+                usages[loc].add(name);
+
+            for (let i = 0; i < call_stack.length; i++)
+                usages[loc].add(call_stack[i]);
+        }
+
+        function addDeclaration(iid, name) {
+            let loc = getLineNumber(iid);
+
+            if (!declares[loc])
+                declares[loc] = new Set();
+            declares[loc].add(name);
         }
 
         function addToExecutionHistory(iid) {
@@ -34,21 +49,13 @@
         }
 
         this.write = function(iid, name, val, lhs) {
-            log.writes.push({iid: iid, name: name, val: val, lhs: lhs, location: getLineNumber(iid)});
-
-            let loc = getLineNumber(iid);
             addToExecutionHistory(iid);
-
-            declares[loc] = name;
+            addDeclaration(iid, name);
         }
 
         this.declare = function(iid, name, val, isArgumentSync) {
-            log.declares.push({iid: iid, name: name, val: val, lhs: isArgumentSync, location: getLineNumber(iid)});
-            
-            let loc = getLineNumber(iid);
             addToExecutionHistory(iid);
-
-            declares[loc] = name;
+            addDeclaration(iid, name);
         }
 
         this.conditional = function(iid, result) {
@@ -56,11 +63,31 @@
         };
 
         this.read = function(iid, name, val, isGlobal) {
-            log.reads.push({iid: iid, name: name, val: val, isGlobal: isGlobal, location: getLineNumber(iid)});
-            let loc = getLineNumber(iid);
             addToExecutionHistory(iid);
+            addUsage(iid, name);
+        }
 
-            addUsage(loc, name);
+        this.invokeFunPre = function(iid, f, base, args, isConstructor, isMethod, functionIid) {
+            addToExecutionHistory(iid);
+            addDeclaration(iid, f.name + "_" + iid);
+            call_stack.push(f.name + "_" + iid);
+            addUsage(iid, f.name);
+        }
+        
+        this._return = function(iid, val) {
+            addToExecutionHistory(iid);
+            addDeclaration(iid, call_stack[call_stack.length - 1] + "_return_value");
+        }
+
+        this.invokeFun = function(iid, f, base, args, result, isConstructor, isMethod, functionIid) {
+            addToExecutionHistory(iid);
+            call_stack.pop();
+            addUsage(iid, f.name + "_" + iid + "_return_value");
+        }
+
+        this.endExpression = function(iid) {
+            addToExecutionHistory(iid);
+            addUsage(iid)
         }
 
         function union(setA, setB) {        
@@ -84,21 +111,24 @@
             // Slicing algorithm from https://dl.acm.org/doi/pdf/10.1145/318774.319248
             execution_order.forEach(i => {
                 if(declares[i]) {
-                    if (!DynDep[declares[i]])
-                        DynDep[declares[i]] = new Set();
-                    if (usages[i]) {
-                        usages[i].forEach(u => {
-                            DynDep[declares[i]] = union(DynDep[declares[i]], DynDep[u]);
-                            if(LS[u]) {
-                                DynDep[declares[i]].add(LS[u]); 
-                            }                
-                        });
-                    }
-                    if (i in declares) {
-                        LS[declares[i]] = i;
-                    }
-                    slices[i] = new Set(DynDep[declares[i]]);
-                    slices[i].add(i);
+                    Array.from(declares[i]).forEach(declared_variable => {
+                        if (!DynDep[declared_variable])
+                            DynDep[declared_variable] = new Set();
+                        if (usages[i]) {
+                            usages[i].forEach(u => {
+                                DynDep[declared_variable] = union(DynDep[declared_variable], DynDep[u]);
+                                if(LS[u]) {
+                                    DynDep[declared_variable].add(LS[u]); 
+                                }                
+                            });
+                        }
+                        if (i in declares) {
+                            LS[declared_variable] = i;
+                        }
+                        slices[i] = new Set(DynDep[declared_variable]);
+                        slices[i].add(i);
+                    });
+                    
                 }
                 else {
                     slices[i] = new Set();
