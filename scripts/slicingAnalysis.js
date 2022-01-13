@@ -1,10 +1,4 @@
 function SlicingAnalysis(jalangi, branching) {
-    log = {
-        "writes": [],
-        "declares": [],       
-        "reads": [],
-        "conditionals": [],
-    };
     execution_order = [];
     declares = {};
     usages = {};
@@ -58,7 +52,7 @@ function SlicingAnalysis(jalangi, branching) {
     }
 
     this.conditional = function(iid, result) {
-        log.conditionals.push({iid: iid, result: result, location: getLineNumber(iid)});
+
     };
 
     this.read = function(iid, name, val, isGlobal) {
