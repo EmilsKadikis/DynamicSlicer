@@ -1,8 +1,29 @@
+//
+// An analysis that runs each of the analyses passed in args one after the other, passing along the results of each analysis to the next.
+//
 function SerializedAnalyses(jalangi, ...args) {
     this.jalangi = jalangi;
     this.analyses = args.reverse();
     let FirstAnalysis = this.analyses.pop();
-    this.currentAnalysis = new FirstAnalysis();
+    this.currentAnalysis = new FirstAnalysis(jalangi);
+
+    this.scriptExit = function (iid, wrappedExceptionVal) {
+        if (this.currentAnalysis.scriptExit) {
+            let result = this.currentAnalysis.scriptExit(iid, wrappedExceptionVal);
+            if (result.isBacktrack)
+                return result;    
+        }
+        if (this.analyses.length > 0) {
+            let NextAnalysis = this.analyses.pop();           
+            if (this.currentAnalysis.analysisResult)
+                this.currentAnalysis = new NextAnalysis(this.jalangi, this.currentAnalysis.analysisResult());
+            else 
+                this.currentAnalysis = new NextAnalysis(this.jalangi);
+            return {wrappedExceptionVal: wrappedExceptionVal, isBacktrack: true};
+        }
+        else 
+            return {wrappedExceptionVal: wrappedExceptionVal, isBacktrack: false};
+    };
 
     this.invokeFunPre = function (iid, f, base, args, isConstructor, isMethod, functionIid, functionSid) {
         if (this.currentAnalysis.invokeFunPre)
@@ -87,24 +108,6 @@ function SerializedAnalyses(jalangi, ...args) {
     this.scriptEnter = function (iid, instrumentedFileName, originalFileName) {
         if (this.currentAnalysis.scriptEnter)
             this.currentAnalysis.scriptEnter(iid, instrumentedFileName, originalFileName);
-    };
-
-    this.scriptExit = function (iid, wrappedExceptionVal) {
-        if (this.currentAnalysis.scriptExit) {
-            let result = this.currentAnalysis.scriptExit(iid, wrappedExceptionVal);
-            if (result.isBacktrack)
-                return result;    
-        }
-        if (this.analyses.length > 0) {
-            let NextAnalysis = this.analyses.pop();           
-            if (this.currentAnalysis.analysisResult)
-                this.currentAnalysis = new NextAnalysis(this.jalangi, this.currentAnalysis.analysisResult());
-            else 
-                this.currentAnalysis = new NextAnalysis(this.jalangi);
-            return {wrappedExceptionVal: wrappedExceptionVal, isBacktrack: true};
-        }
-        else 
-            return {wrappedExceptionVal: wrappedExceptionVal, isBacktrack: false};
     };
 
     this.binaryPre = function (iid, op, left, right, isOpAssign, isSwitchCaseComparison, isComputed) {
