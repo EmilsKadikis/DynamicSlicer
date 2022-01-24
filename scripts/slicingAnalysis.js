@@ -5,24 +5,48 @@ function SlicingAnalysis(jalangi, branching) {
 
     call_stack = [];
 
-    function addUsage(iid, name) {
+    function getObjectIdentifier(v) {
+        var type = typeof v;
+        if ((type === 'object' || type ==='function') && v!== null) {
+            var shadowObj = jalangi.smemory.getShadowObjectOfObject(v);
+            return jalangi.smemory.getIDFromShadowObjectOrFrame(shadowObj);
+        } else {
+            return null;
+        }
+    }
+
+    function addUsage(iid, name, val) {
         let loc = getLineNumber(iid);
 
         if (!usages[loc])
             usages[loc] = new Set();
-        if (name)
-            usages[loc].add(name);
 
+        let shadowObjIdentifier = getObjectIdentifier(val);
+        if(shadowObjIdentifier) {
+            usages[loc].add(shadowObjIdentifier);
+        }
+        if(name) {
+            usages[loc].add(name);
+        }     
+      
         for (let i = 0; i < call_stack.length; i++)
             usages[loc].add(call_stack[i]);
     }
 
-    function addDeclaration(iid, name) {
+    function addDeclaration(iid, name, val) {
         let loc = getLineNumber(iid);
 
         if (!declares[loc])
             declares[loc] = new Set();
-        declares[loc].add(name);
+        
+        let shadowObjIdentifier = getObjectIdentifier(val);
+        if(shadowObjIdentifier) {
+            declares[loc].add(shadowObjIdentifier);
+        }
+
+        if (name) {
+            declares[loc].add(name);
+        }      
     }
 
     function addToExecutionHistory(iid) {
@@ -41,14 +65,19 @@ function SlicingAnalysis(jalangi, branching) {
         return fullLocation.split(":")[2];
     }
 
+    this.literal = function (iid, val, hasGetterSetter) {
+        addToExecutionHistory(iid);
+        addDeclaration(iid, null, val)
+    };
+
     this.write = function(iid, name, val, lhs) {
         addToExecutionHistory(iid);
-        addDeclaration(iid, name);
+        addDeclaration(iid, name, null);
     }
 
     this.declare = function(iid, name, val, isArgumentSync) {
         addToExecutionHistory(iid);
-        addDeclaration(iid, name);
+        addDeclaration(iid, name, val);
     }
 
     this.conditional = function(iid, result) {
@@ -57,25 +86,31 @@ function SlicingAnalysis(jalangi, branching) {
 
     this.read = function(iid, name, val, isGlobal) {
         addToExecutionHistory(iid);
-        addUsage(iid, name);
+        addUsage(iid, name, null);
     }
 
     this.invokeFunPre = function(iid, f, base, args, isConstructor, isMethod, functionIid) {
         addToExecutionHistory(iid);
-        addDeclaration(iid, f.name + "_" + iid);
-        call_stack.push(f.name + "_" + iid);
-        addUsage(iid, f.name);
+        addDeclaration(iid, null, base);
+        addUsage(iid, null, f);
+
+        let shadowObjIdentifier = getObjectIdentifier(base);
+        if(shadowObjIdentifier) {
+            call_stack.push(shadowObjIdentifier);
+        }
     }
     
     this._return = function(iid, val) {
         addToExecutionHistory(iid);
-        addDeclaration(iid, call_stack[call_stack.length - 1] + "_return_value");
+        addUsage(iid, null, val);
+        addDeclaration(iid, call_stack[call_stack.length - 1] + "_return_value", val);
     }
 
     this.invokeFun = function(iid, f, base, args, result, isConstructor, isMethod, functionIid) {
         addToExecutionHistory(iid);
         call_stack.pop();
-        addUsage(iid, f.name + "_" + iid + "_return_value");
+        let shadowObjIdentifier = getObjectIdentifier(base);
+        addUsage(iid, shadowObjIdentifier + "_return_value", result);
     }
 
     this.endExpression = function(iid) {
@@ -85,14 +120,15 @@ function SlicingAnalysis(jalangi, branching) {
 
     this.putFieldPre = function(iid, base, offset, val, isComputed, isOpAssign) {
         addToExecutionHistory(iid);
-        var shadowObj = jalangi.smemory.getShadowObject(base, offset, false);
-        addDeclaration(iid, jalangi.smemory.getIDFromShadowObjectOrFrame(shadowObj.owner)+"." + offset);
+        let shadowObjIdentifier = getObjectIdentifier(base);
+        addDeclaration(iid, shadowObjIdentifier+'.'+offset, null);
+        addDeclaration(iid, null, base);
     }
 
     this.getFieldPre = function(iid, base, offset, isComputed, isOpAssign, isMethodCall) {
         addToExecutionHistory(iid);
-        var shadowObj = jalangi.smemory.getShadowObject(base, offset, false);
-        addUsage(iid, jalangi.smemory.getIDFromShadowObjectOrFrame(shadowObj.owner)+"." + offset);
+        let shadowObjIdentifier = getObjectIdentifier(base);
+        addUsage(iid, shadowObjIdentifier+'.'+offset, null);
     }
 
     function union(setA, setB) {        
