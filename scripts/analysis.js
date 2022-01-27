@@ -1,8 +1,9 @@
 (function (jalangi) {
     const SerializedAnalyses = require("./serializedAnalyses.js").SerializedAnalyses;
 
-    const BranchAnalysis = require("./branchAnalysis.js").BranchAnalysis;
+    const DynamicBranchAnalysis = require("./dynamicBranchAnalysis.js").DynamicBranchAnalysis;
     const SlicingAnalysis = require("./slicingAnalysis.js").SlicingAnalysis;
+    const WhichBranchesAreHitAnalysis = require("./whichBranchesAreHitAnalysis.js").WhichBranchesAreHitAnalysis;
 
-    jalangi.analysis = new SerializedAnalyses(jalangi, BranchAnalysis, SlicingAnalysis);
+    jalangi.analysis = new SerializedAnalyses(jalangi, WhichBranchesAreHitAnalysis, DynamicBranchAnalysis, SlicingAnalysis);
 }(J$));

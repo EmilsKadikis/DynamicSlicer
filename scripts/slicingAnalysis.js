@@ -54,6 +54,13 @@ function SlicingAnalysis(jalangi, branching) {
         let last_location = execution_order[execution_order.length - 1];
         if (!last_location || last_location !== loc)
             execution_order.push(loc);
+
+        if (loc in branching) {
+            let conditionals = branching[loc];
+            conditionals.forEach(conditionalIid => {
+                addUsage(iid, conditionalIid+"conditional", null);
+            })
+        }
     }
 
     function getFullLocation(iid) {
@@ -81,7 +88,7 @@ function SlicingAnalysis(jalangi, branching) {
     }
 
     this.conditional = function(iid, result) {
-
+        addDeclaration(iid, iid + "conditional", null);
     };
 
     this.read = function(iid, name, val, isGlobal) {
