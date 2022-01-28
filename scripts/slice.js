@@ -41,6 +41,9 @@
 
         let newAst = estraverse.replace(ast, {
             enter: function (node) {
+                if (node.type === "BreakStatement" || node.type === "ContinueStatement")
+                    return; // Always keep break and continue statements. This will only be hit within blocks that are being kept anyway.
+
                 if (node.loc && !linesToKeep.includes(node.loc.start.line)) {
                     this.remove();
                 }
