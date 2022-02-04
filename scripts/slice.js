@@ -33,7 +33,7 @@
     }
         
 
-    function keep_lines(programText, linesToKeep) {
+    function keep_lines(programText, linesToKeep, usedVariables) {
         let acorn = require("acorn");
         let estraverse = require("estraverse");
         let ast = acorn.parse(programText, {locations:true})
@@ -43,6 +43,19 @@
             enter: function (node) {
                 if (node.type === "BreakStatement" || node.type === "ContinueStatement")
                     return; // Always keep break and continue statements. This will only be hit within blocks that are being kept anyway.
+
+                if (node.type === "VariableDeclaration") {
+                    let keep = false;
+                    node.declarations.forEach(function (declaration) {
+                        if (usedVariables.includes(declaration.id.name)) {
+                            keep = true;
+                        }
+                    });
+                    if (keep) {
+                        this.skip();
+                        return;
+                    }
+                }
 
                 if (node.loc && !linesToKeep.includes(node.loc.start.line)) {
                     this.remove();
@@ -64,9 +77,10 @@
         
         analysisResult = run_analysis(inFile);
 
-        linesToKeep = analysisResult[lineNb];
+        linesToKeep = analysisResult.slices[lineNb];
+        usedVariables = analysisResult.used_variables[lineNb];
         
-        newProgramText = keep_lines(programText, linesToKeep)
+        newProgramText = keep_lines(programText, linesToKeep, usedVariables)
 
         fs.writeFileSync(outFile, newProgramText);     
     }

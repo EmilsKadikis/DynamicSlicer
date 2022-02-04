@@ -155,6 +155,7 @@ function SlicingAnalysis(jalangi, branching) {
         let LS = {}
 
         let slices = {}
+        let used_variables = {}
 
         // Slicing algorithm from https://dl.acm.org/doi/pdf/10.1145/318774.319248
         execution_order.forEach(i => {
@@ -173,7 +174,11 @@ function SlicingAnalysis(jalangi, branching) {
                     if (i in declares) {
                         LS[declared_variable] = i;
                     }
-                    slices[i] = new Set(DynDep[declared_variable]);
+                    if (i in slices) {
+                        slices[i] = union(slices[i], new Set(DynDep[declared_variable]));
+                    } else {
+                        slices[i] = new Set(DynDep[declared_variable]);
+                    }
                     slices[i].add(i);
                 });
                 
@@ -191,12 +196,32 @@ function SlicingAnalysis(jalangi, branching) {
                 slices[i].add(i);
             }
         });
-        
+
+
+        function calculateUsedVariables(lines) {
+            if (lines === undefined)
+                return new Set();
+            let variables = new Set();
+            
+            lines.forEach(line => {
+                if(usages[line] !== undefined) {
+                    usages[line].forEach(variable => {
+                        variables.add(variable);
+                    });
+                }
+            });
+
+            return Array.from(variables);
+        }
+
+        for (let i in slices)
+            used_variables[i] = calculateUsedVariables(slices[i]);
+
         // convert sets in slices to arrays
         for (let i in slices)
             slices[i] = Array.from(slices[i]).map(Number);
 
-        console.log(JSON.stringify(slices));
+        console.log(JSON.stringify({ slices, used_variables }));
     }
 }
 
