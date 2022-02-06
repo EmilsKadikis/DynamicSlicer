@@ -3,6 +3,8 @@ function SlicingAnalysis(jalangi, branching) {
     declares = {};
     usages = {};
 
+    function_declaration_lines = new Set();
+
     call_stack = [];
 
     function getObjectIdentifier(v) {
@@ -85,6 +87,10 @@ function SlicingAnalysis(jalangi, branching) {
     this.declare = function(iid, name, val, isArgumentSync) {
         addToExecutionHistory(iid);
         addDeclaration(iid, name, val);
+
+        if (typeof val === 'function') {
+            function_declaration_lines.add(getLineNumber(iid));
+        }
     }
 
     this.conditional = function(iid, result) {
@@ -206,6 +212,11 @@ function SlicingAnalysis(jalangi, branching) {
             lines.forEach(line => {
                 if(usages[line] !== undefined) {
                     usages[line].forEach(variable => {
+                        variables.add(variable);
+                    });
+                }
+                if(!function_declaration_lines.has(line) && declares[line] !== undefined) {
+                    declares[line].forEach(variable => {
                         variables.add(variable);
                     });
                 }
