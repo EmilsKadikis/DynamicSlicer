@@ -13,9 +13,17 @@
 
     const args = parser.parse_args();
 
-    function run_analysis(inFile) {
+    function run_analysis(inFile, branchCoverage) {
+        // save branchCoverage to a json file
+        const fs = require("fs");
+        const path = require('path');
+        let fileName = path.parse(inFile).name + "_branchCoverage.json";
+        fs.writeFileSync(fileName, JSON.stringify(branchCoverage));
+
+        // pass it to jalangi for the slicing analysis
+		branchCoverageArgs = " --initParam branch_coverage_file:" + fileName;
         inputArgs = " --inlineIID --inlineSource --analysis ../../jalangi2-master/src/js/sample_analyses/ChainedAnalyses.js --analysis ../../jalangi2-master/src/js/runtime/SMemory.js --analysis analysis.js " + inFile;
-		stmt = 'node ../../jalangi2-master/src/js/commands/jalangi.js ' + inputArgs;
+        stmt = 'node ../../jalangi2-master/src/js/commands/jalangi.js ' + branchCoverageArgs + inputArgs;
         
 		var cp = require('child_process');
 		
@@ -29,6 +37,7 @@
 
         var lines = analysisResult.split("<END EXECUTION>");
 
+        fs.unlinkSync(fileName)
         return JSON.parse(lines[lines.length - 1]);
     }
         
@@ -37,7 +46,15 @@
         let acorn = require("acorn");
         let estraverse = require("estraverse");
         let ast = acorn.parse(programText, {locations:true})
-        //console.log(ast);
+
+        function isAtLeastOneLineInLocation(lines, loc) {
+            for (let i in lines) {
+                let line = lines[i];
+                if (loc.start.line <= line && line <= loc.end.line)
+                    return true;
+            }
+            return false;
+        }
 
         let newAst = estraverse.replace(ast, {
             enter: function (node) {
@@ -57,7 +74,7 @@
                     }
                 }
 
-                if (node.loc && !linesToKeep.includes(node.loc.start.line)) {
+                if (node.loc && !isAtLeastOneLineInLocation(linesToKeep, node.loc)) {
                     this.remove();
                 }
             }
@@ -75,7 +92,11 @@
         let fs = require('fs');
         let programText = fs.readFileSync(inFile, 'utf8');
         
-        analysisResult = run_analysis(inFile);
+        let StaticBranchAnalysis = require("./staticBranchAnalysis.js").StaticBranchAnalysis; 
+
+        let branchCoverage = StaticBranchAnalysis(programText);
+
+        analysisResult = run_analysis(inFile, branchCoverage);
 
         linesToKeep = analysisResult.slices[lineNb];
         usedVariables = analysisResult.used_variables[lineNb];
