@@ -17,7 +17,7 @@
         // save branchCoverage to a json file
         const fs = require("fs");
         const path = require('path');
-        let fileName = path.parse(inFile).name + "_branchCoverage.json";
+        let fileName = path.parse(inFile).name + "_" + new Date().getTime() + "_branchCoverage.json";
         fs.writeFileSync(fileName, JSON.stringify(branchCoverage));
 
         // pass it to jalangi for the slicing analysis
@@ -98,12 +98,16 @@
 
         analysisResult = run_analysis(inFile, branchCoverage);
 
-        linesToKeep = analysisResult.slices[lineNb];
-        usedVariables = analysisResult.used_variables[lineNb];
-        
-        newProgramText = keep_lines(programText, linesToKeep, usedVariables)
+        if (!analysisResult.slices[lineNb] || !analysisResult.used_variables[lineNb]) {
+            console.log("Line " + lineNb + " not found in the analysis result");
+        } else {
+            linesToKeep = analysisResult.slices[lineNb];
+            usedVariables = analysisResult.used_variables[lineNb];
+            
+            newProgramText = keep_lines(programText, linesToKeep, usedVariables)
 
-        fs.writeFileSync(outFile, newProgramText);     
+            fs.writeFileSync(outFile, newProgramText);     
+        }
     }
 
     slice(args.inFile, args.outFile, args.lineNb);
