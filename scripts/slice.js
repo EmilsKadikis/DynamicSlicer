@@ -22,7 +22,7 @@
 
         // pass it to jalangi for the slicing analysis
 		branchCoverageArgs = " --initParam branch_coverage_file:" + fileName;
-        inputArgs = " --inlineIID --inlineSource --analysis ../../jalangi2-master/src/js/sample_analyses/ChainedAnalyses.js --analysis ../../jalangi2-master/src/js/runtime/SMemory.js --analysis analysis.js " + inFile;
+        inputArgs = " --inlineIID --inlineSource --analysis ../../jalangi2-master/src/js/sample_analyses/ChainedAnalyses.js --analysis ../../jalangi2-master/src/js/runtime/SMemory.js --analysis slicingAnalysis.js " + inFile;
         stmt = 'node ../../jalangi2-master/src/js/commands/jalangi.js ' + branchCoverageArgs + inputArgs;
         
 		var cp = require('child_process');
