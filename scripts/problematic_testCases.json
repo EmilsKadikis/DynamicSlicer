@@ -1,0 +1,15 @@
+[
+    {
+        "inFile": "../testcases/problematic/p1_in.js",
+        "outFile": "../testcases/problematic/p1_predicted_out.js",
+        "lineNb": 10,
+        "goldFile": "../testcases/problematic/p1_out.js"
+    },
+    {
+        "inFile": "../testcases/problematic/p2_in.js",
+        "outFile": "../testcases/problematic/p2_predicted_out.js",
+        "lineNb": 9,
+        "goldFile": "../testcases/problematic/p2_out.js"
+    }
+
+]

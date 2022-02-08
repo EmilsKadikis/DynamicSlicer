@@ -8,6 +8,8 @@
         conditional_iids = {};
     
         call_stack = [];
+
+        breaks_and_continues = [];
     
         function getObjectIdentifier(v) {
             var type = typeof v;
@@ -66,6 +68,12 @@
                     addUsage(iid, conditionalIid+"conditional", null);
                 })
             }
+
+            for (let i = 0; i < breaks_and_continues.length; i++) {
+                if(!usages[loc])
+                    usages[loc] = new Set();
+                usages[loc].add(breaks_and_continues[i]);
+            }
         }
     
         function getFullLocation(iid) {
@@ -76,11 +84,48 @@
             let fullLocation = getFullLocation(iid);
             return fullLocation.split(":")[2];
         }
-    
+
+        this.instrumentCodePre = function (iid, code, isDirect) {
+            // replace any occurance of break/continue statements in code
+            // to add a string literal. This is a hack to create new jalangi callbacks
+            // for break/continue statements.
+            code = code.replace(/break;/g, function (match) {
+                return "'jalangi: break called'; break;";
+            });
+            code = code.replace(/continue;/g, function (match) {
+                return "'jalangi: continue called'; continue;";
+            });
+
+            return {code: code, skip: false};
+        };
+
+        // this callback is hijacked to provide a new callback for break/continue statements
         this.literal = function (iid, val, hasGetterSetter) {
+            if (val == "jalangi: break called") {
+                this._break(iid);
+            } else if (val == "jalangi: continue called") {
+                this._continue(iid);
+            } else {
+                this._literal(iid, val, hasGetterSetter);
+            }
+        };
+
+        this._literal = function(iid, val, hasGetterSetter) {
             addToExecutionHistory(iid);
             addDeclaration(iid, null, val)
-        };
+        }
+
+        this._break = function (iid) {
+            addToExecutionHistory(iid);
+            addDeclaration(iid, iid + "break", null);
+            breaks_and_continues.push(iid + "break");
+        }
+
+        this._continue = function (iid) {
+            addToExecutionHistory(iid);
+            addDeclaration(iid, iid + "continue", null);
+            breaks_and_continues.push(iid + "continue");
+        }
     
         this.write = function(iid, name, val, lhs) {
             addToExecutionHistory(iid);
