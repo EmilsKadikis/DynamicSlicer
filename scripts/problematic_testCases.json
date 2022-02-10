@@ -10,6 +10,11 @@
         "outFile": "../testcases/problematic/p2_predicted_out.js",
         "lineNb": 9,
         "goldFile": "../testcases/problematic/p2_out.js"
+    },
+    {
+        "inFile": "../testcases/problematic/p3_in.js",
+        "outFile": "../testcases/problematic/p3_predicted_out.js",
+        "lineNb": 3,
+        "goldFile": "../testcases/problematic/p3_out.js"
     }
-
 ]

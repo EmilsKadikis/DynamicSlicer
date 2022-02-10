@@ -135,10 +135,6 @@
         this.declare = function(iid, name, val, isArgumentSync) {
             addToExecutionHistory(iid);
             addDeclaration(iid, name, val);
-    
-            if (typeof val === 'function') {
-                function_declaration_lines.add(getLineNumber(iid));
-            }
         }
     
         this.conditional = function(iid, result) {
@@ -162,6 +158,11 @@
                 call_stack.push(shadowObjIdentifier);
             }
         }
+
+        this.functionEnter = function(iid, f, dis, args) {           
+            function_declaration_lines.add(getLineNumber(iid));
+        }
+        
         
         this._return = function(iid, val) {
             addToExecutionHistory(iid);
