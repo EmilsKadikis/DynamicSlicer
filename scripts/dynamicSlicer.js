@@ -63,32 +63,48 @@ if (typeof J$ === 'undefined') {
                 return sandbox.scope.GLOBAL;
         }
 
-        this.variableDeclared = function(iid, name) {
+        function variableDeclarationSet(iid) {
             let location = codeLocations.location(iid);
             if(!variableDeclarations[location])
                 variableDeclarations[location] = new Set();
+            return variableDeclarations[location];
+        }
 
-            let scope = sandbox.scope.current();
-            variableDeclarations[location].add(scope + name);
-        };
-
-        this.variableUsed = function (iid, name, isGlobal = false) {
+        function variableUsageSet(iid) {
             let location = codeLocations.location(iid);
             if(!variableUsages[location])
                 variableUsages[location] = new Set();
+            return variableUsages[location];
+        }
 
-            let scope = isGlobal ? sandbox.scope.GLOBAL : sandbox.scope.current();
-            variableUsages[location].add(scope + name);
-        };
-
-        this.objectDeclared = function (iid, value) {
+        function objectDeclarationSet(iid) {
             let location = codeLocations.location(iid);
             if(!objectDeclarations[location])
                 objectDeclarations[location] = new Set();
+            return objectDeclarations[location];
+        }
 
+        function objectUsageSet(iid) {
+            let location = codeLocations.location(iid);
+            if(!objectUsages[location])
+                objectUsages[location] = new Set();
+            return objectUsages[location];
+        }
+
+        this.variableDeclared = function(iid, name) {
+            let scope = sandbox.scope.current();
+            variableDeclarationSet(iid).add(scope + name);
+        };
+
+        this.variableUsed = function (iid, name, isGlobal = false) {
+            let scope = isGlobal ? sandbox.scope.GLOBAL : sandbox.scope.current();
+            variableUsageSet(iid).add(scope + name);
+        };
+
+        this.objectDeclared = function (iid, value) {
             let scope = sandbox.scope.current();
             addScopeToShadowObject(value, scope);
-            objectDeclarations[location].add(scope + getObjectIdentifier(value));
+            objectDeclarationSet(iid).add(scope + getObjectIdentifier(value));
         };
 
         this.functionDeclared = function (iid, f) {
@@ -97,58 +113,39 @@ if (typeof J$ === 'undefined') {
         }
 
         this.objectUsed = function(iid, value) {
-            let location = codeLocations.location(iid);
-            if(!objectUsages[location])
-                objectUsages[location] = new Set();
-
             let scope = getScopeFromShadowObject(value);
-            objectUsages[location].add(scope + getObjectIdentifier(value));
+            objectUsageSet(iid).add(scope + getObjectIdentifier(value));
         };
 
         this.objectPropertyUsed = function(iid, base, offset) {
             if (typeof base === 'string')
                 return; // Ignore string properties, such as "abcd".length
-            let location = codeLocations.location(iid);
-            if(!objectUsages[location])
-                objectUsages[location] = new Set();
 
             let scope = getScopeFromShadowObject(base);
-            objectUsages[location].add(scope + getObjectIdentifier(base) + '.' + offset);
+            objectUsageSet(iid).add(scope + getObjectIdentifier(base) + '.' + offset);
         };
 
         this.objectPropertyDeclared = function(iid, base, offset) {
-            let location = codeLocations.location(iid);
-            if(!objectDeclarations[location])
-                objectDeclarations[location] = new Set();
-
             let scope = getScopeFromShadowObject(base);
             let objId = getObjectIdentifier(base);
-            objectDeclarations[location].add(scope + objId);
-            objectDeclarations[location].add(scope + objId + '.' + offset);
+            objectDeclarationSet(iid).add(scope + objId);
+            objectDeclarationSet(iid).add(scope + objId + '.' + offset);
         };
 
         this.functionInvoked = function(iid, f) {
             this.objectUsed(iid, f);
             this.variableUsed(iid, f.name);
 
-            let location = codeLocations.location(iid);
-            if(!objectDeclarations[location])
-                objectDeclarations[location] = new Set();
-
             let scope = sandbox.scope.current();
-            objectDeclarations[location].add(scope);
+            objectDeclarationSet(iid).add(scope);
         };
 
         this.returningFromFunction = function(iid, val) {
-            let location = codeLocations.location(iid);
-            if(!variableDeclarations[location])
-                variableDeclarations[location] = new Set();
-
             if(typeof val === "object" || typeof val === "function")
                 this.objectUsed(iid, val);
 
             this.lastReturnVariable = sandbox.scope.current() + "&RETURN";
-            variableDeclarations[location].add(this.lastReturnVariable);
+            variableDeclarationSet(iid).add(this.lastReturnVariable);
         };
     
 
@@ -156,21 +153,14 @@ if (typeof J$ === 'undefined') {
             if(!this.lastReturnVariable) // if this is undefined, then returningFromFunction was not called
                 return;                  // this means it was a global function, and we don't care about it
 
-            let location = codeLocations.location(iid);
-            if(!variableUsages[location])
-                variableUsages[location] = new Set();
-
-            variableUsages[location].add(this.lastReturnVariable);
+            variableUsageSet(iid).add(this.lastReturnVariable);
             this.lastReturnVariable = undefined;
         };
 
         this.endExpression = function(iid) {
             let location = codeLocations.location(iid);
-            if(!objectUsages[location])
-                objectUsages[location] = new Set();
-
             let scope = sandbox.scope.current();
-            objectUsages[location].add(scope);
+            objectUsageSet(iid).add(scope);
 
             addDependencyOnConditionals(location);
             addDependencyOnBreaksAndContinues(location);
@@ -199,32 +189,23 @@ if (typeof J$ === 'undefined') {
 
         this.conditionalHit = function(iid) {
             let location = codeLocations.location(iid);
-            if(!variableDeclarations[location])
-                variableDeclarations[location] = new Set();
-
             let scope = sandbox.scope.current();
-            variableDeclarations[location].add(scope + "&conditional" + location);
+            variableDeclarationSet(iid).add(scope + "&conditional" + location);
         };
 
         this.breakHit = function(iid) {
             let location = codeLocations.location(iid);
-            if(!variableDeclarations[location])
-                variableDeclarations[location] = new Set();
-
             let scope = sandbox.scope.current();
             let dummyVariableName = scope + "&break" + location;
-            variableDeclarations[location].add(dummyVariableName);
+            variableDeclarationSet(iid).add(dummyVariableName);
             breakAndContinueDummyVariables.push(dummyVariableName);
         };
 
         this.continueHit = function(iid) {
             let location = codeLocations.location(iid);
-            if(!variableDeclarations[location])
-                variableDeclarations[location] = new Set();
-
             let scope = sandbox.scope.current();
             let dummyVariableName = scope + "&continue" + location;
-            variableDeclarations[location].add(dummyVariableName);
+            variableDeclarationSet(iid).add(dummyVariableName);
             breakAndContinueDummyVariables.push(dummyVariableName);
         };
 
