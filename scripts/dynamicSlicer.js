@@ -44,7 +44,7 @@ if (typeof J$ === 'undefined') {
             var type = typeof v;
             if ((type === 'object' || type ==='function') && v!== null) {
                 var shadowObj = sandbox.smemory.getShadowObjectOfObject(v);
-                return sandbox.smemory.getIDFromShadowObjectOrFrame(shadowObj);
+                return "&" + type + sandbox.smemory.getIDFromShadowObjectOrFrame(shadowObj);
             } else {
                 return null;
             }
