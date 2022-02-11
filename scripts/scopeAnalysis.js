@@ -14,7 +14,6 @@
                 throw "Global scope has no parent";
         }
 
-
         this.enter = function(iid, name) {
             callStack.push("*" + name + "|" + iid + "*");
         }
@@ -33,9 +32,15 @@
         var scope = new Scope();
         sandbox.scope = scope;
 
+        var codeLocations = new sandbox.CodeLocations();
         
         this.invokeFunPre = function(iid, f, base, args, isConstructor, isMethod, functionIid) {
-            scope.enter(iid, f.name);
+            if (isMethod) {
+                let location = codeLocations.location(functionIid);
+                scope.enter(iid, "ANONYMOUS_FUNC@" + location)
+            }
+            else
+                scope.enter(iid, f.name);
         };
 
 

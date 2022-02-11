@@ -1,0 +1,3 @@
+[
+    {"inFile": "../testcases/scope/s1_in.js","outFile": "../testcases/scope/s1_predicted_out.js","lineNb": 15,"goldFile": "../testcases/scope/s1_out.js"}
+]

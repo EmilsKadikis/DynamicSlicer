@@ -22,5 +22,6 @@
     {"inFile": "../testcases/problematic/p5_in.js","outFile": "../testcases/problematic/p5_predicted_out.js","lineNb": 19,"goldFile": "../testcases/problematic/p5_out.js"},
     {"inFile": "../testcases/problematic/p6_in.js","outFile": "../testcases/problematic/p6_predicted_out.js","lineNb": 19,"goldFile": "../testcases/problematic/p6_out.js"},
     {"inFile": "../testcases/problematic/p7_in.js","outFile": "../testcases/problematic/p7_predicted_out.js","lineNb": 3,"goldFile": "../testcases/problematic/p7_out.js"},
-    {"inFile": "../testcases/problematic/p8_in.js","outFile": "../testcases/problematic/p8_predicted_out.js","lineNb": 3,"goldFile": "../testcases/problematic/p8_out.js"}
+    {"inFile": "../testcases/problematic/p8_in.js","outFile": "../testcases/problematic/p8_predicted_out.js","lineNb": 3,"goldFile": "../testcases/problematic/p8_out.js"},
+    {"inFile": "../testcases/scope/s1_in.js","outFile": "../testcases/scope/s1_predicted_out.js","lineNb": 15,"goldFile": "../testcases/scope/s1_out.js"}
 ]

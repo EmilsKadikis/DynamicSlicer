@@ -51,16 +51,13 @@
             slicer.variableDeclared(iid, name);
         }
     
-        this.declare = function(iid, name, val, isArgumentSync) {
-
-        }
     
         this.conditional = function(iid, result) {
             slicer.conditionalHit(iid);
         };
     
-        this.read = function(iid, name, val, isGlobal) {
-            slicer.variableUsed(iid, name, isGlobal);
+        this.read = function(iid, name, val, isGlobal, isScriptLocal) {
+            slicer.variableUsed(iid, name, isGlobal || isScriptLocal);
         }
     
         this.invokeFunPre = function(iid, f, base, args, isConstructor, isMethod, functionIid) {

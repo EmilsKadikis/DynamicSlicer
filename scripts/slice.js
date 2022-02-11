@@ -59,8 +59,10 @@
         let callStack = ["global"];
         let newAst = estraverse.replace(ast, {
             enter: function (node) {
-                if (node.type == 'FunctionDeclaration' || node.type == 'FunctionExpression')
+                if (node.type == 'FunctionDeclaration')
                     callStack.push(node.id.name);
+                if (node.type == 'FunctionExpression')
+                    callStack.push("ANONYMOUS_FUNC@"+node.loc.start.line);
 
                 if (node.type === "BreakStatement" || node.type === "ContinueStatement")
                     return; // Always keep break and continue statements. This will only be hit within blocks that are being kept anyway.
