@@ -58,7 +58,7 @@
 
         let callStack = ["global"];
         let newAst = estraverse.replace(ast, {
-            enter: function (node) {
+            enter: function (node, parent) {
                 if (node.type == 'FunctionDeclaration')
                     callStack.push(node.id.name);
                 if (node.type == 'FunctionExpression')
@@ -85,9 +85,17 @@
                     this.remove();
                 }
             },
-            exit: function (node) {
+            leave: function (node) {
                 if (node.type == 'FunctionDeclaration' || node.type == 'FunctionExpression')
                     callStack.pop();
+
+                // fix if statements whose consequent was deleted by adding an empty block
+                if (node.type === "IfStatement" && node.consequent === null) {
+                    node.consequent = {
+                        type: "BlockStatement",
+                        body: []
+                    }
+                }
             }
         });
 

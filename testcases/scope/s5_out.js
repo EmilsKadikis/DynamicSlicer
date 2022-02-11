@@ -6,6 +6,7 @@ function addGlobalA(x) {
 }
 var a = 3;
 var result = sliceMe();
+var message;
 if (result == 4) {
 } else {
     message = 'result is not 4';
