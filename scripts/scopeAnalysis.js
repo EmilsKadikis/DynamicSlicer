@@ -34,13 +34,12 @@
         sandbox.scope = scope;
 
         
-        //this.functionEnter = function (iid, f, dis, args) {
         this.invokeFunPre = function(iid, f, base, args, isConstructor, isMethod, functionIid) {
             scope.enter(iid, f.name);
         };
 
 
-        this.functionExit = function (iid, returnVal, wrappedExceptionVal) {
+        this.invokeFun = function(iid, f, base, args, result, isConstructor, isMethod, functionIid) {
             scope.exit();
         };
     }

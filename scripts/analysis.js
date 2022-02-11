@@ -3,7 +3,7 @@
 
     function SlicingAnalysis(branching) {  
 
-        var slicer = new sandbox.DynamicSlicer();
+        var slicer = new sandbox.DynamicSlicer(branching);
         sandbox.dynamicSlicer = slicer;
 
         this.instrumentCodePre = function (iid, code, isDirect) {
@@ -56,14 +56,11 @@
         }
     
         this.conditional = function(iid, result) {
-
+            slicer.conditionalHit(iid);
         };
     
         this.read = function(iid, name, val, isGlobal) {
-            slicer.variableUsed(iid, name);
-            //if (typeof val === "object" || typeof val === "function") {
-            //    slicer.objectUsed(iid, val);
-            //}
+            slicer.variableUsed(iid, name, isGlobal);
         }
     
         this.invokeFunPre = function(iid, f, base, args, isConstructor, isMethod, functionIid) {

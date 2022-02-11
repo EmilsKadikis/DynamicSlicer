@@ -18,7 +18,7 @@ if (typeof J$ === 'undefined') {
         return union;
     };
 
-    sandbox.DynamicSlicer = function () {
+    sandbox.DynamicSlicer = function (branching) {
         var variableUsages = {};
         var objectUsages = {};
         var variableDeclarations = {};
@@ -57,7 +57,10 @@ if (typeof J$ === 'undefined') {
 
         function getScopeFromShadowObject(value) {
             var shadowObj = sandbox.smemory.getShadowObjectOfObject(value);
-            return shadowObj["*J*SCOPE"];
+            if (shadowObj["*J*SCOPE"])
+                return shadowObj["*J*SCOPE"] ;
+            else
+                return sandbox.scope.GLOBAL;
         }
 
         this.variableDeclared = function(iid, name) {
@@ -69,12 +72,12 @@ if (typeof J$ === 'undefined') {
             variableDeclarations[location].add(scope + name);
         };
 
-        this.variableUsed = function (iid, name) {
+        this.variableUsed = function (iid, name, isGlobal = false) {
             let location = codeLocations.location(iid);
             if(!variableUsages[location])
                 variableUsages[location] = new Set();
 
-            let scope = sandbox.scope.current();
+            let scope = isGlobal ? sandbox.scope.GLOBAL : sandbox.scope.current();
             variableUsages[location].add(scope + name);
         };
 
@@ -103,6 +106,8 @@ if (typeof J$ === 'undefined') {
         };
 
         this.objectPropertyUsed = function(iid, base, offset) {
+            if (typeof base === 'string')
+                return; // Ignore string properties, such as "abcd".length
             let location = codeLocations.location(iid);
             if(!objectUsages[location])
                 objectUsages[location] = new Set();
@@ -148,11 +153,15 @@ if (typeof J$ === 'undefined') {
     
 
         this.returnedFromFunction = function(iid, base, result) {
+            if(!this.lastReturnVariable) // if this is undefined, then returningFromFunction was not called
+                return;                  // this means it was a global function, and we don't care about it
+
             let location = codeLocations.location(iid);
             if(!variableUsages[location])
                 variableUsages[location] = new Set();
 
             variableUsages[location].add(this.lastReturnVariable);
+            this.lastReturnVariable = undefined;
         };
 
         this.endExpression = function(iid) {
@@ -162,7 +171,31 @@ if (typeof J$ === 'undefined') {
 
             let scope = sandbox.scope.current();
             objectUsages[location].add(scope);
+
+            addDependencyOnConditionals(location);
         };
+
+        function addDependencyOnConditionals(location) {
+            if (location in branching) {
+                if(!variableUsages[location])
+                    variableUsages[location] = new Set();
+
+                let conditionals = branching[location];
+                conditionals.forEach(conditionalLine => {
+                    let scope = sandbox.scope.current();
+                    variableUsages[location].add(scope + "&conditional" + conditionalLine);
+                })
+            }
+        }
+
+        this.conditionalHit = function(iid) {
+            let location = codeLocations.location(iid);
+            if(!variableDeclarations[location])
+                variableDeclarations[location] = new Set();
+
+            let scope = sandbox.scope.current();
+            variableDeclarations[location].add(scope + "&conditional" + location);
+        }
 
         this.calculateSlices = function () {
             let DynDep = {};
