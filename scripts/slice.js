@@ -13,18 +13,28 @@
 
     const args = parser.parse_args();
 
-    function run_analysis(inFile, branchCoverage) {
-        // save branchCoverage to a json file
+    // Function that performs the slicing analysis.
+    function runAnalysis(inFile, branchCoverage) {
+        // Save branch coverage result to a json file.
         const fs = require("fs");
         const path = require('path');
         let fileName = path.parse(inFile).name + "_" + new Date().getTime() + "_branchCoverage.json";
         fs.writeFileSync(fileName, JSON.stringify(branchCoverage));
 
-        // pass it to jalangi for the slicing analysis
-		branchCoverageArgs = " --initParam branch_coverage_file:" + fileName;
-        inputArgs = " --inlineIID --inlineSource --analysis ../../jalangi2-master/src/js/sample_analyses/ChainedAnalyses.js --analysis ../../jalangi2-master/src/js/runtime/SMemory.js --analysis executionHistoryAnalysis.js --analysis scopeAnalysis.js --analysis analysis.js " + inFile;
-        stmt = 'node ../../jalangi2-master/src/js/commands/jalangi.js ' + branchCoverageArgs + inputArgs;
+
+        let relativeJalangiLocation = "../../jalangi2-master/src/js/"; //TODO: Make this configurable.
+
+        // Pass it to jalangi for the slicing analysis.
+		let branchCoverageArgs = " --initParam branch_coverage_file:" + fileName;
+        let inputArgs = " --inlineIID --inlineSource";
+        let analysisArgs =  " --analysis " + relativeJalangiLocation + "sample_analyses/ChainedAnalyses.js"; // Required for Jalangi to load multiple analyses.
+        analysisArgs +=     " --analysis " + relativeJalangiLocation + "runtime/SMemory.js";                 // Required for shadow memory.
+        analysisArgs +=     " --analysis executionHistoryAnalysis.js";  
+        analysisArgs +=     " --analysis scopeAnalysis.js";
+        analysisArgs +=     " --analysis analysis.js " + inFile
+        let stmt = "node " + relativeJalangiLocation + "commands/jalangi.js " + branchCoverageArgs + inputArgs + analysisArgs;
         
+        // Execute stmt in a separate Jalangi process.
 		var cp = require('child_process');
 		
         var analysisResult = cp.execSync(stmt,
@@ -35,18 +45,21 @@
                 }
 		    }).toString();
 
+        // Get the result from the stdout of the process.
+        // The analysis outputs a separator line followed by the result.
         var lines = analysisResult.split("<END EXECUTION>");
 
         fs.unlinkSync(fileName)
         return JSON.parse(lines[lines.length - 1]);
     }
         
-
-    function keep_lines(programText, linesToKeep, usedVariables) {
+    // Function that prunes code that is not contained in the calculated slice.
+    function keepLines(programText, linesToKeep, usedVariables) {
         let acorn = require("acorn");
         let estraverse = require("estraverse");
         let ast = acorn.parse(programText, {locations:true})
 
+        // Helper function to check if a node's location contains one of the lines that need to be kept.
         function isAtLeastOneLineInLocation(lines, loc) {
             for (let i in lines) {
                 let line = lines[i];
@@ -56,6 +69,7 @@
             return false;
         }
 
+        // We need to keep a track of the scope we are on while traversing so that we know which variables are in scope.
         let callStack = ["global"];
         let newAst = estraverse.replace(ast, {
             enter: function (node, parent) {
@@ -67,6 +81,8 @@
                 if (node.type === "BreakStatement" || node.type === "ContinueStatement")
                     return; // Always keep break and continue statements. This will only be hit within blocks that are being kept anyway.
 
+                // Keep all VariableDeclaration nodes that declare a variable that was used in the slice.
+                // This ensures that all "var x;" statements are kept in the locations where they appeared in the original
                 if (node.type === "VariableDeclaration") {
                     let keep = false;
                     node.declarations.forEach(function (declaration) {
@@ -89,7 +105,7 @@
                 if (node.type == 'FunctionDeclaration' || node.type == 'FunctionExpression')
                     callStack.pop();
 
-                // fix if statements whose consequent was deleted by adding an empty block
+                // Fix if statements whose consequent was deleted by adding an empty block.
                 if (node.type === "IfStatement" && node.consequent === null) {
                     node.consequent = {
                         type: "BlockStatement",
@@ -99,6 +115,7 @@
             }
         });
 
+        // Re-generate the code from the pruned AST.
         let escodegen = require("escodegen");
         newProgramText = escodegen.generate(newAst);
 
@@ -112,10 +129,9 @@
         let programText = fs.readFileSync(inFile, 'utf8');
         
         let StaticBranchAnalysis = require("./staticBranchAnalysis.js").StaticBranchAnalysis; 
-
         let branchCoverage = StaticBranchAnalysis(programText);
 
-        analysisResult = run_analysis(inFile, branchCoverage);
+        analysisResult = runAnalysis(inFile, branchCoverage);
 
         if (!analysisResult.slices[lineNb] || !analysisResult.used_variables[lineNb]) {
             console.log("Line " + lineNb + " not found in the analysis result");
@@ -123,7 +139,7 @@
             linesToKeep = analysisResult.slices[lineNb];
             usedVariables = analysisResult.used_variables[lineNb];
             
-            newProgramText = keep_lines(programText, linesToKeep, usedVariables)
+            newProgramText = keepLines(programText, linesToKeep, usedVariables)
 
             fs.writeFileSync(outFile, newProgramText);     
         }
@@ -132,5 +148,3 @@
     slice(args.inFile, args.outFile, args.lineNb);
 
 })();
-// Run the analysis with:
-// node src/js/commands/jalangi.js --inlineIID --inlineSource --analysis exampleAnalysis.js program.js

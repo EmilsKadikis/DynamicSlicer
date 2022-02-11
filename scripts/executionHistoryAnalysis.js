@@ -1,51 +1,38 @@
+/*
+ * A simple analysis that tracks which lines are exectuted and in what order.
+ */
+
+
 (function (sandbox) {
     require('./codeLocations.js');
 
     var codeLocations = new sandbox.CodeLocations();
-    sandbox.codeLocations = codeLocations;
 
     function ExecutionHistoryAnalysis() {
 
+        // This makes the execution history available to all other analyses.
         sandbox.executionHistory = [];
 
+        // Add a new entry to the execution history.
         function addToExecutionHistory(iid) {
             let location = codeLocations.location(iid);
             let lastLocation = sandbox.executionHistory[sandbox.executionHistory.length - 1];
+            // Only add the location if it is different from the last line.
+            // This is done because the same line will trigger multiple callbacks, but only one entry is needed.
             if (!lastLocation || lastLocation !== location)
                 sandbox.executionHistory.push(location);
         }
 
+        /////////////////////////////CALLBACKS////////////////////////////////////
 
         this.literal = function (iid, val, hasGetterSetter) {
-            if (val == "jalangi: break called") {
-                this._break(iid);
-            } else if (val == "jalangi: continue called") {
-                this._continue(iid);
-            } else {
-                this._literal(iid, val, hasGetterSetter);
-            }
+            addToExecutionHistory(iid);
         };
-
-        this._literal = function(iid, val, hasGetterSetter) {
-            addToExecutionHistory(iid);
-        }
-
-        this._break = function (iid) {
-            addToExecutionHistory(iid);
-        }
-
-        this._continue = function (iid) {
-            addToExecutionHistory(iid);
-        }
     
         this.write = function(iid, name, val, lhs) {
             addToExecutionHistory(iid);
         }
-    
-        this.declare = function(iid, name, val, isArgumentSync) {
-            //addToExecutionHistory(iid);
-        }
-    
+        
         this.conditional = function(iid, result) {
             addToExecutionHistory(iid);
         };

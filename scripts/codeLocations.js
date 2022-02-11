@@ -1,3 +1,8 @@
+/*
+ * Helper function to convert iids to code locations in a unified way.
+ * The locations are line numbers.
+ */
+
 if (typeof J$ === 'undefined') {
     J$ = {};
 }
