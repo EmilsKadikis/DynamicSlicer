@@ -1,10 +1,4 @@
 [
     {"inFile": "../testcases/problematic/p1_in.js","outFile": "../testcases/problematic/p1_predicted_out.js","lineNb": 10,"goldFile": "../testcases/problematic/p1_out.js"},
-    {"inFile": "../testcases/problematic/p2_in.js","outFile": "../testcases/problematic/p2_predicted_out.js","lineNb": 9,"goldFile": "../testcases/problematic/p2_out.js"},
-    {"inFile": "../testcases/problematic/p3_in.js","outFile": "../testcases/problematic/p3_predicted_out.js","lineNb": 3,"goldFile": "../testcases/problematic/p3_out.js"},
-    {"inFile": "../testcases/problematic/p4_in.js","outFile": "../testcases/problematic/p4_predicted_out.js","lineNb": 3,"goldFile": "../testcases/problematic/p4_out.js"},
-    {"inFile": "../testcases/problematic/p5_in.js","outFile": "../testcases/problematic/p5_predicted_out.js","lineNb": 19,"goldFile": "../testcases/problematic/p5_out.js"},
-    {"inFile": "../testcases/problematic/p6_in.js","outFile": "../testcases/problematic/p6_predicted_out.js","lineNb": 19,"goldFile": "../testcases/problematic/p6_out.js"},
-    {"inFile": "../testcases/problematic/p7_in.js","outFile": "../testcases/problematic/p7_predicted_out.js","lineNb": 3,"goldFile": "../testcases/problematic/p7_out.js"},
-    {"inFile": "../testcases/problematic/p8_in.js","outFile": "../testcases/problematic/p8_predicted_out.js","lineNb": 3,"goldFile": "../testcases/problematic/p8_out.js"}
+    {"inFile": "../testcases/problematic/p2_in.js","outFile": "../testcases/problematic/p2_predicted_out.js","lineNb": 9,"goldFile": "../testcases/problematic/p2_out.js"}
 ]

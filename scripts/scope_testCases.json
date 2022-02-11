@@ -1,3 +1,9 @@
 [
-    {"inFile": "../testcases/scope/s1_in.js","outFile": "../testcases/scope/s1_predicted_out.js","lineNb": 15,"goldFile": "../testcases/scope/s1_out.js"}
+    {"inFile": "../testcases/scope/s1_in.js","outFile": "../testcases/scope/s1_predicted_out.js","lineNb": 15,"goldFile": "../testcases/scope/s1_out.js"},
+    {"inFile": "../testcases/scope/s2_in.js","outFile": "../testcases/scope/s2_predicted_out.js","lineNb": 3,"goldFile": "../testcases/scope/s2_out.js"},
+    {"inFile": "../testcases/scope/s3_in.js","outFile": "../testcases/scope/s3_predicted_out.js","lineNb": 3,"goldFile": "../testcases/scope/s3_out.js"},
+    {"inFile": "../testcases/scope/s4_in.js","outFile": "../testcases/scope/s4_predicted_out.js","lineNb": 19,"goldFile": "../testcases/scope/s4_out.js"},
+    {"inFile": "../testcases/scope/s5_in.js","outFile": "../testcases/scope/s5_predicted_out.js","lineNb": 19,"goldFile": "../testcases/scope/s5_out.js"},
+    {"inFile": "../testcases/scope/s6_in.js","outFile": "../testcases/scope/s6_predicted_out.js","lineNb": 3,"goldFile": "../testcases/scope/s6_out.js"},
+    {"inFile": "../testcases/scope/s7_in.js","outFile": "../testcases/scope/s7_predicted_out.js","lineNb": 3,"goldFile": "../testcases/scope/s7_out.js"}
 ]
