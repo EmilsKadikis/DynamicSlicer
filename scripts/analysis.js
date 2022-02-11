@@ -40,11 +40,11 @@
         }
 
         this._break = function (iid) {
-
+            slicer.breakHit(iid);
         }
 
         this._continue = function (iid) {
-
+            slicer.continueHit(iid);
         }
     
         this.write = function(iid, name, val, lhs) {

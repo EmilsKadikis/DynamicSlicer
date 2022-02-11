@@ -24,7 +24,7 @@ if (typeof J$ === 'undefined') {
         var variableDeclarations = {};
         var objectDeclarations = {};
 
-        var currentFunction = null;
+        var breakAndContinueDummyVariables = [];
 
         function combineDictionaries(dict1, dict2){
             var newDict = {};
@@ -173,6 +173,7 @@ if (typeof J$ === 'undefined') {
             objectUsages[location].add(scope);
 
             addDependencyOnConditionals(location);
+            addDependencyOnBreaksAndContinues(location);
         };
 
         function addDependencyOnConditionals(location) {
@@ -186,7 +187,15 @@ if (typeof J$ === 'undefined') {
                     variableUsages[location].add(scope + "&conditional" + conditionalLine);
                 })
             }
-        }
+        };
+
+        function addDependencyOnBreaksAndContinues(location) {
+            breakAndContinueDummyVariables.forEach(breakOrContinueDummyVariable => {
+                if(!variableUsages[location])
+                    variableUsages[location] = new Set();
+                variableUsages[location].add(breakOrContinueDummyVariable);
+            });
+        };
 
         this.conditionalHit = function(iid) {
             let location = codeLocations.location(iid);
@@ -195,7 +204,29 @@ if (typeof J$ === 'undefined') {
 
             let scope = sandbox.scope.current();
             variableDeclarations[location].add(scope + "&conditional" + location);
-        }
+        };
+
+        this.breakHit = function(iid) {
+            let location = codeLocations.location(iid);
+            if(!variableDeclarations[location])
+                variableDeclarations[location] = new Set();
+
+            let scope = sandbox.scope.current();
+            let dummyVariableName = scope + "&break" + location;
+            variableDeclarations[location].add(dummyVariableName);
+            breakAndContinueDummyVariables.push(dummyVariableName);
+        };
+
+        this.continueHit = function(iid) {
+            let location = codeLocations.location(iid);
+            if(!variableDeclarations[location])
+                variableDeclarations[location] = new Set();
+
+            let scope = sandbox.scope.current();
+            let dummyVariableName = scope + "&continue" + location;
+            variableDeclarations[location].add(dummyVariableName);
+            breakAndContinueDummyVariables.push(dummyVariableName);
+        };
 
         this.calculateSlices = function () {
             let DynDep = {};
