@@ -22,7 +22,7 @@
 
         // pass it to jalangi for the slicing analysis
 		branchCoverageArgs = " --initParam branch_coverage_file:" + fileName;
-        inputArgs = " --inlineIID --inlineSource --analysis ../../jalangi2-master/src/js/sample_analyses/ChainedAnalyses.js --analysis ../../jalangi2-master/src/js/runtime/SMemory.js --analysis slicingAnalysis.js " + inFile;
+        inputArgs = " --inlineIID --inlineSource --analysis ../../jalangi2-master/src/js/sample_analyses/ChainedAnalyses.js --analysis ../../jalangi2-master/src/js/runtime/SMemory.js --analysis executionHistoryAnalysis.js --analysis scopeAnalysis.js --analysis analysis.js " + inFile;
         stmt = 'node ../../jalangi2-master/src/js/commands/jalangi.js ' + branchCoverageArgs + inputArgs;
         
 		var cp = require('child_process');
@@ -56,15 +56,20 @@
             return false;
         }
 
+        let callStack = ["global"];
         let newAst = estraverse.replace(ast, {
             enter: function (node) {
+                if (node.type == 'FunctionDeclaration' || node.type == 'FunctionExpression')
+                    callStack.push(node.id.name);
+
                 if (node.type === "BreakStatement" || node.type === "ContinueStatement")
                     return; // Always keep break and continue statements. This will only be hit within blocks that are being kept anyway.
 
                 if (node.type === "VariableDeclaration") {
                     let keep = false;
                     node.declarations.forEach(function (declaration) {
-                        if (usedVariables.includes(declaration.id.name)) {
+                        let scopedVariables = usedVariables[callStack[callStack.length - 1]];
+                        if (scopedVariables && scopedVariables.includes(declaration.id.name)) {
                             keep = true;
                         }
                     });
@@ -77,6 +82,10 @@
                 if (node.loc && !isAtLeastOneLineInLocation(linesToKeep, node.loc)) {
                     this.remove();
                 }
+            },
+            exit: function (node) {
+                if (node.type == 'FunctionDeclaration' || node.type == 'FunctionExpression')
+                    callStack.pop();
             }
         });
 
