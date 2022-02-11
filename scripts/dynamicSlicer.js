@@ -19,26 +19,10 @@ if (typeof J$ === 'undefined') {
     };
 
     sandbox.DynamicSlicer = function (branching) {
-        var variableUsages = {};
-        var objectUsages = {};
-        var variableDeclarations = {};
-        var objectDeclarations = {};
+        var usages = {};
+        var declarations = {};
 
         var breakAndContinueDummyVariables = [];
-
-        function combineDictionaries(dict1, dict2){
-            var newDict = {};
-            for (var i in dict1) {
-                newDict[i] = dict1[i];
-            }
-            for (var j in dict2) {
-                if (newDict[j])
-                    newDict[j] = newDict[j].union(dict2[j]);
-                else
-                    newDict[j] = dict2[j];
-            }
-            return newDict;
-        };
 
         function getObjectIdentifier(v) {
             var type = typeof v;
@@ -63,48 +47,34 @@ if (typeof J$ === 'undefined') {
                 return sandbox.scope.GLOBAL;
         }
 
-        function variableDeclarationSet(iid) {
+        function declarationSet(iid) {
             let location = codeLocations.location(iid);
-            if(!variableDeclarations[location])
-                variableDeclarations[location] = new Set();
-            return variableDeclarations[location];
+            if(!declarations[location])
+                declarations[location] = new Set();
+            return declarations[location];
         }
 
-        function variableUsageSet(iid) {
+        function usageSet(iid) {
             let location = codeLocations.location(iid);
-            if(!variableUsages[location])
-                variableUsages[location] = new Set();
-            return variableUsages[location];
-        }
-
-        function objectDeclarationSet(iid) {
-            let location = codeLocations.location(iid);
-            if(!objectDeclarations[location])
-                objectDeclarations[location] = new Set();
-            return objectDeclarations[location];
-        }
-
-        function objectUsageSet(iid) {
-            let location = codeLocations.location(iid);
-            if(!objectUsages[location])
-                objectUsages[location] = new Set();
-            return objectUsages[location];
+            if(!usages[location])
+                usages[location] = new Set();
+            return usages[location];
         }
 
         this.variableDeclared = function(iid, name) {
             let scope = sandbox.scope.current();
-            variableDeclarationSet(iid).add(scope + name);
+            declarationSet(iid).add(scope + name);
         };
 
         this.variableUsed = function (iid, name, isGlobal = false) {
             let scope = isGlobal ? sandbox.scope.GLOBAL : sandbox.scope.current();
-            variableUsageSet(iid).add(scope + name);
+            usageSet(iid).add(scope + name);
         };
 
         this.objectDeclared = function (iid, value) {
             let scope = sandbox.scope.current();
             addScopeToShadowObject(value, scope);
-            objectDeclarationSet(iid).add(scope + getObjectIdentifier(value));
+            declarationSet(iid).add(scope + getObjectIdentifier(value));
         };
 
         this.functionDeclared = function (iid, f) {
@@ -114,7 +84,7 @@ if (typeof J$ === 'undefined') {
 
         this.objectUsed = function(iid, value) {
             let scope = getScopeFromShadowObject(value);
-            objectUsageSet(iid).add(scope + getObjectIdentifier(value));
+            usageSet(iid).add(scope + getObjectIdentifier(value));
         };
 
         this.objectPropertyUsed = function(iid, base, offset) {
@@ -122,14 +92,14 @@ if (typeof J$ === 'undefined') {
                 return; // Ignore string properties, such as "abcd".length
 
             let scope = getScopeFromShadowObject(base);
-            objectUsageSet(iid).add(scope + getObjectIdentifier(base) + '.' + offset);
+            usageSet(iid).add(scope + getObjectIdentifier(base) + '.' + offset);
         };
 
         this.objectPropertyDeclared = function(iid, base, offset) {
             let scope = getScopeFromShadowObject(base);
             let objId = getObjectIdentifier(base);
-            objectDeclarationSet(iid).add(scope + objId);
-            objectDeclarationSet(iid).add(scope + objId + '.' + offset);
+            declarationSet(iid).add(scope + objId);
+            declarationSet(iid).add(scope + objId + '.' + offset);
         };
 
         this.functionInvoked = function(iid, f) {
@@ -137,7 +107,7 @@ if (typeof J$ === 'undefined') {
             this.variableUsed(iid, f.name);
 
             let scope = sandbox.scope.current();
-            objectDeclarationSet(iid).add(scope);
+            declarationSet(iid).add(scope);
         };
 
         this.returningFromFunction = function(iid, val) {
@@ -145,7 +115,7 @@ if (typeof J$ === 'undefined') {
                 this.objectUsed(iid, val);
 
             this.lastReturnVariable = sandbox.scope.current() + "&RETURN";
-            variableDeclarationSet(iid).add(this.lastReturnVariable);
+            declarationSet(iid).add(this.lastReturnVariable);
         };
     
 
@@ -153,14 +123,14 @@ if (typeof J$ === 'undefined') {
             if(!this.lastReturnVariable) // if this is undefined, then returningFromFunction was not called
                 return;                  // this means it was a global function, and we don't care about it
 
-            variableUsageSet(iid).add(this.lastReturnVariable);
+            usageSet(iid).add(this.lastReturnVariable);
             this.lastReturnVariable = undefined;
         };
 
         this.endExpression = function(iid) {
             let location = codeLocations.location(iid);
             let scope = sandbox.scope.current();
-            objectUsageSet(iid).add(scope);
+            usageSet(iid).add(scope);
 
             addDependencyOnConditionals(location);
             addDependencyOnBreaksAndContinues(location);
@@ -168,36 +138,36 @@ if (typeof J$ === 'undefined') {
 
         function addDependencyOnConditionals(location) {
             if (location in branching) {
-                if(!variableUsages[location])
-                    variableUsages[location] = new Set();
+                if(!usages[location])
+                    usages[location] = new Set();
 
                 let conditionals = branching[location];
                 conditionals.forEach(conditionalLine => {
                     let scope = sandbox.scope.current();
-                    variableUsages[location].add(scope + "&conditional" + conditionalLine);
+                    usages[location].add(scope + "&conditional" + conditionalLine);
                 })
             }
         };
 
         function addDependencyOnBreaksAndContinues(location) {
             breakAndContinueDummyVariables.forEach(breakOrContinueDummyVariable => {
-                if(!variableUsages[location])
-                    variableUsages[location] = new Set();
-                variableUsages[location].add(breakOrContinueDummyVariable);
+                if(!usages[location])
+                    usages[location] = new Set();
+                usages[location].add(breakOrContinueDummyVariable);
             });
         };
 
         this.conditionalHit = function(iid) {
             let location = codeLocations.location(iid);
             let scope = sandbox.scope.current();
-            variableDeclarationSet(iid).add(scope + "&conditional" + location);
+            declarationSet(iid).add(scope + "&conditional" + location);
         };
 
         this.breakHit = function(iid) {
             let location = codeLocations.location(iid);
             let scope = sandbox.scope.current();
             let dummyVariableName = scope + "&break" + location;
-            variableDeclarationSet(iid).add(dummyVariableName);
+            declarationSet(iid).add(dummyVariableName);
             breakAndContinueDummyVariables.push(dummyVariableName);
         };
 
@@ -205,7 +175,7 @@ if (typeof J$ === 'undefined') {
             let location = codeLocations.location(iid);
             let scope = sandbox.scope.current();
             let dummyVariableName = scope + "&continue" + location;
-            variableDeclarationSet(iid).add(dummyVariableName);
+            declarationSet(iid).add(dummyVariableName);
             breakAndContinueDummyVariables.push(dummyVariableName);
         };
 
@@ -215,24 +185,21 @@ if (typeof J$ === 'undefined') {
     
             let slices = {}
 
-            let allUsages = combineDictionaries(objectUsages, variableUsages);
-            let allDeclarations = combineDictionaries(objectDeclarations, variableDeclarations);
-    
             // Slicing algorithm from https://dl.acm.org/doi/pdf/10.1145/318774.319248
             sandbox.executionHistory.forEach(i => {
-                if(allDeclarations[i]) {
-                    Array.from(allDeclarations[i]).forEach(declared_variable => {
+                if(declarations[i]) {
+                    Array.from(declarations[i]).forEach(declared_variable => {
                         if (!DynDep[declared_variable])
                             DynDep[declared_variable] = new Set();
-                        if (allUsages[i]) {
-                            allUsages[i].forEach(u => {
+                        if (usages[i]) {
+                            usages[i].forEach(u => {
                                 DynDep[declared_variable] = DynDep[declared_variable].union(DynDep[u]);
                                 if(LD[u]) {
                                     DynDep[declared_variable].add(LD[u]); 
                                 }                
                             });
                         }
-                        if (i in allDeclarations) {
+                        if (i in declarations) {
                             LD[declared_variable] = i;
                         }
                         if (i in slices) {
@@ -243,19 +210,7 @@ if (typeof J$ === 'undefined') {
                         slices[i].add(i);
                     });
                     
-                }
-                /*else {
-                    slices[i] = new Set();
-                    if (usages[i]) {
-                        usages[i].forEach(u => {
-                            slices[i] = slices[i].union(DynDep[u]);
-                            if(LD[u]) {
-                                slices[i].add(LD[u]);
-                            }                 
-                        });
-                    }
-                    slices[i].add(i);
-                }*/
+                }                
             });
    
             // convert sets in slices to arrays
@@ -274,11 +229,11 @@ if (typeof J$ === 'undefined') {
                 let variables = {};
 
                 lines.forEach(line => {
-                    if(variableUsages[line] !== undefined) {
-                        variableUsages[line].forEach(_handleVariable);
+                    if(usages[line] !== undefined) {
+                        usages[line].forEach(_handleVariable);
                     }
-                    if(/*!function_declaration_lines.has(line) &&*/ variableDeclarations[line] !== undefined) {
-                        variableDeclarations[line].forEach(_handleVariable);
+                    if(declarations[line] !== undefined) {
+                        declarations[line].forEach(_handleVariable);
                     }
                 });
 
